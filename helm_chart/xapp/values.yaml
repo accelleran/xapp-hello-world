@@ -57,7 +57,7 @@ draxConfig:
     value: '{{ .Values.global.kubeIp }}'
   - name: 'API_GATEWAY_PORT'
     type: string
-    value: '30315'
+    value: '31315'
   - name: 'KAFKA_URL'
     type: string
     value: '{{ .Values.global.kubeIp }}'
