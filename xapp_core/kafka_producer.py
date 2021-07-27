@@ -1,9 +1,8 @@
-from kafka import KafkaProducer
-from json import dumps
-import jsonpickle
+from confluent_kafka import Producer
+import json
 
 
-def run(settings, kafka_outgoing_queue):
+def run(settings, out_queue):
     '''
 
     :param settings:
@@ -19,11 +18,17 @@ def run(settings, kafka_outgoing_queue):
 
     ### Kafka producer
     with settings.lock:
-        kafka_producer = KafkaProducer(bootstrap_servers=[settings.configuration['config']['KAFKA_URL'] + ':' + settings.configuration['config']['KAFKA_PORT']],
-                                       value_serializer=lambda x:
-                                       dumps(jsonpickle.encode(x)).encode('utf-8')
-                                       )
+        kafka_producer = Producer(
+            {
+                "bootstrap.servers": settings.configuration["config"]["KAFKA_URL"]
+                + ":"
+                + settings.configuration["config"]["KAFKA_PORT"]
+            }
+        )
 
     while True:
-        outgoing_data = kafka_outgoing_queue.get()
-        kafka_producer.send(outgoing_data['topic'], outgoing_data['data'])
+        outgoing_data = out_queue.get()
+        kafka_producer.produce(outgoing_data["topic"], json.dumps(outgoing_data["data"]).encode("utf-8"))
+        kafka_producer.poll(0)
+
+

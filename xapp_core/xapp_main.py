@@ -9,6 +9,7 @@ import processor
 import kafka_listener
 import periodic_publisher
 import atexit
+import restapi
 
 
 def goodbye(settings):
@@ -34,8 +35,8 @@ if __name__ == '__main__':
     # Kafka Out-Queue
     out_queue = queue.Queue()
 
-    # Kafka Periodic Out-Queue
-    periodic_out_queue = queue.Queue()
+    # Kafka Final Out-Queue
+    final_out_queue = queue.Queue()
 
     ### Threads
     # Redis listener
@@ -51,7 +52,7 @@ if __name__ == '__main__':
     kafka_producer_thread = threading.Thread(
         name='KAFKA_PRODUCER',
         target=kafka_producer.run,
-        args=(settings, periodic_out_queue, )
+        args=(settings, final_out_queue, )
     )
     kafka_producer_thread.setDaemon(True)
     kafka_producer_thread.start()
@@ -78,10 +79,19 @@ if __name__ == '__main__':
     periodic_publisher_thread = threading.Thread(
         name='PERIODIC_PUBLISHER',
         target=periodic_publisher.run,
-        args=(settings, out_queue, data_store, )
+        args=(settings, out_queue, data_store, final_out_queue, )
     )
     periodic_publisher_thread.setDaemon(True)
     periodic_publisher_thread.start()
+
+    # RESTAPI
+    processor_thread = threading.Thread(
+        name='RESTAPI',
+        target=restapi.run,
+        args=(settings, in_queue)
+    )
+    processor_thread.setDaemon(True)
+    processor_thread.start()
 
     ### xApp loop
     while True:

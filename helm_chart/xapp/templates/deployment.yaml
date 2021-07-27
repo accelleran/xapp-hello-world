@@ -23,27 +23,64 @@ spec:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       initContainers:
         - name: {{ .Chart.Name }}-check-redis
-          image: accelleran/acc-generic-img:0.2.0
-          imagePullPolicy: IfNotPresent
+          image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+          imagePullPolicy: {{ .Values.initImage.pullPolicy }}
           command: ['sh', '-c', 'until [ "$(redis-cli -h {{ tpl .Values.xappFrameworkConfig.redisUrl . }} ping)" == "PONG" ]; do echo $(date) [CHECK-SERVICES] Waiting for REDIS; sleep 2; done; echo Redis online']
         {{ if .Values.xappFrameworkConfig.flushOnDeployment }}
         - name: {{ .Chart.Name }}-flush-redis
-          image: accelleran/acc-generic-img:0.2.0
-          imagePullPolicy: IfNotPresent
+          image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+          imagePullPolicy: {{ .Values.initImage.pullPolicy }}
           command: ['sh', '-c', 'redis-cli -h {{ tpl .Values.xappFrameworkConfig.redisUrl . }} FLUSHALL']
         {{ end }}
+        - name: {{ .Chart.Name }}-check-kafka
+          image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+          imagePullPolicy: {{ .Values.initImage.pullPolicy }}
+          command: ['sh', '-c', 'echo "KAFKA_URL=\"{{ tpl .Values.initConfig.kafkaUrl . }}\"" > kafka_url.py && python3 kafka-test.py']
+        - name: {{ .Chart.Name }}-init-xapp
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/bash", "-c"]
+          args: ["python3 init_xapp.py"]
+          volumeMounts:
+            - name: {{ include "xapp_core.fullname" . }}-config
+              mountPath: /home/xapp/xapp-core/xapp_configuration.json
+              subPath: "xapp_configuration.json"
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ tpl .Values.version . }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{ if .Values.developerMode.enabled }}
+          command:
+            - sh
+            - "-c"
+            - |
+              /bin/bash <<'EOF'
+              sudo service ssh start
+              echo 'xapp:{{ .Values.developerMode.devPassword }}' | sudo chpasswd
+              git init /home/xapp/xapp-core
+              while true; do sleep 30; done;
+              EOF
+          {{ else }}
+          command: ["/bin/bash", "-c"]
+          args: ["python3 xapp_main.py"]
+          {{ end }}
           volumeMounts:
+            {{ if and (.Values.developerMode.enabled) (.Values.developerMode.hostPath) }}
+            - name: dev-work-dir
+              mountPath: /home/xapp/xapp-core/
+            {{ end }}
             - name: {{ include "xapp_core.fullname" . }}-config
-              mountPath: /src/xapp/xapp_configuration.py
-              subPath: "xapp_configuration.py"
+              mountPath: /home/xapp/xapp-core/xapp_configuration.json
+              subPath: "xapp_configuration.json"
           ports:
-            - containerPort: {{ .Values.service.port }}
+            - containerPort: {{ .Values.restService.port }}
+            {{ if .Values.developerMode.enabled }}
+            - containerPort: {{ .Values.sshService.port }}
+            {{ end }}
 #          livenessProbe:
 #            httpGet:
 #              path: /
@@ -54,9 +91,14 @@ spec:
 #              port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-      {{- with .Values.nodeSelector }}
+      {{- if or (.Values.nodeSelector) (eq (tpl .Values.draxNodeSelectorEnabled .) "true") }}
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
+        {{ if .Values.nodeSelector }}
+          {{- toYaml .Values.nodeSelector | nindent 8 }}
+        {{ end }}
+        {{ if eq (tpl .Values.draxNodeSelectorEnabled .) "true" }}
+          {{- tpl (toYaml .Values.draxNodeSelector) $ | nindent 8 }}
+        {{ end }}
       {{- end }}
     {{- with .Values.affinity }}
       affinity:
@@ -70,3 +112,9 @@ spec:
         - name: {{ include "xapp_core.fullname" . }}-config
           configMap:
             name: {{ include "xapp_core.fullname" . }}-config
+
+        {{ if and (.Values.developerMode.enabled) (.Values.developerMode.hostPath) }}
+        - name: dev-work-dir
+          hostPath:
+            path: {{ .Values.developerMode.hostPath }}
+        {{ end }}

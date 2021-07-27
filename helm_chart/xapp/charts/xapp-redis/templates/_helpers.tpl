@@ -2,7 +2,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "xapp_core.name" -}}
+{{- define "redis.name" -}}
 {{- $name := printf "%s-%s" .Chart.Name .Chart.Version -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
@@ -12,58 +12,56 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "xapp_core.fullname" -}}
+{{- define "redis.fullname" -}}
 {{- if .Values.fullnameOverride -}}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
 {{- else -}}
-{{- $name := default (include "xapp_core.name" .) .Values.nameOverride -}}
+{{- $name := default (include "redis.name" .) .Values.nameOverride -}}
+{{- if contains $name .Release.Name -}}
+{{- .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
 {{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 {{- end -}}
-
+{{- end -}}
 
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "xapp_core.chart" -}}
+{{- define "redis.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{/*
 Common labels
 */}}
-{{- define "xapp_core.labels" -}}
-helm.sh/chart: {{ include "xapp_core.chart" . }}
-{{ include "xapp_core.selectorLabels" . }}
+{{- define "redis.labels" -}}
+helm.sh/chart: {{ include "redis.chart" . }}
+{{ include "redis.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 drax/role: xapp
 drax/xapp-name: {{ .Release.Name }}
-drax/xapp-component-name: xapp-core
+drax/xapp-component-name: {{ .Chart.Name }}
 drax/xapp-component-version: {{ .Chart.Version }}
-{{ if .Values.developerMode.enabled }}
-xapp/mode: Developer
-{{ else }}
-xapp/mode: Production
-{{ end }}
 {{- end -}}
 
 {{/*
 Selector labels
 */}}
-{{- define "xapp_core.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "xapp_core.name" . }}
+{{- define "redis.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "redis.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "xapp_core.serviceAccountName" -}}
+{{- define "redis.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create -}}
-    {{ default (include "xapp_core.fullname" .) .Values.serviceAccount.name }}
+    {{ default (include "redis.fullname" .) .Values.serviceAccount.name }}
 {{- else -}}
     {{ default "default" .Values.serviceAccount.name }}
 {{- end -}}

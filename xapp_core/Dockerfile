@@ -1,12 +1,35 @@
-FROM python:3.7-slim-buster
+FROM python:3.7-slim-buster as prod
 
-ADD requirements.txt .
+RUN useradd -rm -d /home/xapp -s /bin/bash -g root -G sudo -u 1000 xapp
+
+USER xapp
+
+RUN mkdir /home/xapp/xapp-core
+
+COPY . /home/xapp/xapp-core
+
+WORKDIR /home/xapp/xapp-core
 
 RUN pip install -r requirements.txt
 
-COPY . /src/xapp
+FROM python:3.7-slim-buster as dev
 
-WORKDIR /src/xapp
+RUN apt update && apt install sudo -y
 
-CMD [ "python3", "xapp_main.py" ]
+RUN useradd -rm -d /home/xapp -s /bin/bash -g root -G sudo -u 1000 xapp
 
+RUN adduser xapp sudo
+
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+USER xapp
+
+RUN sudo apt update && sudo apt install -y ssh git vim nano
+
+RUN mkdir /home/xapp/xapp-core
+
+COPY . /home/xapp/xapp-core
+
+WORKDIR /home/xapp/xapp-core
+
+RUN pip install -r requirements.txt

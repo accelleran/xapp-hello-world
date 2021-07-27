@@ -35,40 +35,49 @@ syntax = "proto2";
 package OpenRANCommandsPB;
 
 enum CommandMessageType {
-	COMMAND_HANDOVER = 1;
+    COMMAND_HANDOVER = 1;
     COMMAND_DATAREQUEST = 2;
     COMMAND_STOPCELL = 3;
     COMMAND_CONFIGURE = 4;
     COMMAND_REBALANCE = 5;
+    COMMAND_SUBBANDMASKREQUEST = 6;
 }
 
 
 message OpenRan_UeHandoverCommand {
-	required string targetCell = 2; /**< unique identifier identifyng the target cell*/
-	required string sourceCell = 3; /**< unique identifier identifyng the source cell*/
-	required string ueRicId = 10; 
+        required string targetCell = 2; /**< unique identifier identifyng the target cell*/
+        required string sourceCell = 3; /**< unique identifier identifyng the source cell*/
+        required string ueRicId = 10;
 }
 
 message OpenRAN_DataRequest {
-	optional string cellId = 1; /**< An optiononal id to limit hte data only to one cell */ 
+        optional string cellId = 1; /**< An optiononal id to limit hte data only to one cell */
 }
 
 message OpenRAN_StopCellRequest {
-	required string cellId = 1; /**< A required id to limit hte data only to one cell */ 
+        required string cellId = 1; /**< A required id to limit hte data only to one cell */
 }
 
 message OpenRAN_ConfigureORANrequest {
-	required bool automaticHandover = 1; /**< Should ORAN try to load balance between cells */
-	required bool publishMeasurements = 2; /**< Should UE measurement be published */
-	required bool publishUeData = 3; /** Should UE data be published */
+        required bool automaticHandover = 1; /**< Should ORAN try to load balance between cells */
+        required bool publishMeasurements = 2; /**< Should UE measurement be published */
+        required bool publishUeData = 3; /** Should UE data be published */
 };
 
+message OpenRAN_SubBandMaskrequest
+{
+        required string cell = 1; /**< unique identifier identifyng the cell that the mask aplies to */
+        required uint32 numBands = 2; /**< number of bands should be 13 for 20 Mhz or 9 for 15MHz */
+        repeated bool mask = 3; /**< array with mask for all the band if the bool is true that band will be used */
+}
 
 message OpenRAN_commandMessage {
-	required CommandMessageType messageType = 1;
-	required string originator = 2;
-	optional OpenRan_UeHandoverCommand handover= 3;
-	optional OpenRAN_DataRequest datarequest= 4;
-	optional OpenRAN_StopCellRequest stopcellrequest= 5;
-	optional OpenRAN_ConfigureORANrequest configrequest= 6;
+        required CommandMessageType messageType = 1;
+        required string originator = 2;
+        optional OpenRan_UeHandoverCommand handover= 3;
+        optional OpenRAN_DataRequest datarequest= 4;
+        optional OpenRAN_StopCellRequest stopcellrequest= 5;
+        optional OpenRAN_ConfigureORANrequest configrequest= 6;
+        optional OpenRAN_SubBandMaskrequest subBandMaskrequest= 7;
 }
+

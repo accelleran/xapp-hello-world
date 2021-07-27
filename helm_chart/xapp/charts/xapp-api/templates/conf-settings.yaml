@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+ name: {{ include "xapp-api.fullname" . }}-settings
+ labels:
+   {{- include "xapp-api.labels" . | nindent 4 }}
+data:
+  settings.py: |
+    REDIS_URL = "{{ tpl .Values.redis.url . }}"
+    REDIS_PORT = 6379
+  flask-site-nginx.conf: |
+    server {
+      location / {
+        try_files $uri @yourapplication;
+      }
+      location @yourapplication {
+        include uwsgi_params;
+        uwsgi_pass unix:///tmp/uwsgi.sock;
+      }
+      # Configure NGINX to deliver static content from the specified folder
+      location /static {
+        alias /app/static;
+      }
+      # Configure Restapi to be exposed for the xapp core
+      location /api/ {
+        proxy_pass http://{{ .Release.Name }}-xapp-core-api.{{ .Release.Namespace }}:8888/api/;
+      }
+    }

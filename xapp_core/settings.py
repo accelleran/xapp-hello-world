@@ -1,15 +1,30 @@
 from threading import Lock
-import xapp_configuration
 import redis
 import json
 import logging
 from datetime import datetime
+import os
 
+def get_readme_content(pathname):
+    if not os.path.isfile(pathname):
+        logging.info('The ' + pathname + ' file is missing.')
+        return "This xApp does not provide README.md file. Refer to user guide to see how to add one."
+    if os.stat(pathname).st_size == 0:
+        logging.info('The ' + pathname + ' file is empty.')
+        return "This README.md file is empty. Refer to user guide to see how to fill the file."
+    with open(pathname) as f:
+        return f.read()
 
 class Settings:
     def __init__(self):
         self.lock = Lock()
-        self.configuration = xapp_configuration.configuration
+
+        try:
+            with open('xapp_configuration.json') as json_file:
+                self.configuration = json.load(json_file)
+        except Exception as e:
+            logging.error("xApp Configuration JSON not found!")
+            logging.error(e)
 
         ### Logging
         logging.basicConfig(format='[%(levelname)s] %(asctime)s (%(threadName)s) %(message)s',
@@ -52,6 +67,8 @@ class Settings:
 
                 self.configuration = data
 
+                r.set('readme', get_readme_content("README.md"))
+
             else:
                 logging.info('No configuration found in Redis. Saving deployment configuration...')
                 r.set('config', json.dumps(self.configuration["config"]))
@@ -60,6 +77,7 @@ class Settings:
                 r.set('uiSchemaOptions', json.dumps(self.configuration["uiSchemaOptions"]))
                 r.set('description', str(self.configuration["description"]))
                 r.set('last_modified', datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+                r.set('readme', get_readme_content("README.md"))
 
             logging.info('Configuration: {config}'.format(config=self.configuration))
 
