@@ -23,6 +23,6 @@ data:
       }
       # Configure Restapi to be exposed for the xapp core
       location /api/ {
-        proxy_pass http://{{ .Release.Name }}-xapp-core-api.{{ .Release.Namespace }}:8888/api/;
+        proxy_pass http://{{ .Release.Name }}-core-api.{{ .Release.Namespace }}:8888/api/;
       }
     }
