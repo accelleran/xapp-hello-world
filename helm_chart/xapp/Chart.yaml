@@ -14,11 +14,11 @@ type: application
 
 # This is the chart version. This version number should be incremented each time you make changes
 # to the chart and its templates, including the app version.
-version: 1.0.0
+version: 0.2.1
 
 # This is the version number of the application being deployed. This version number should be
 # incremented each time you make changes to the application.
-appVersion: "drax-4.0.0"
+appVersion: 0.2.0
 
 # Dependencies
 dependencies:
@@ -28,5 +28,5 @@ dependencies:
     repository: https://accelleran.github.io/helm-charts/
   - name: xapp-api
     condition: xapp-api.enabled
-    version: 1.0.0
+    version: 0.6.0
     repository: https://accelleran.github.io/helm-charts/

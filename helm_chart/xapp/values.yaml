@@ -37,7 +37,7 @@ replicaCount: 1
 
 # Image settings for the xApp Core
 image:
-  repository: accelleran/xapp-framework-package
+  repository: accelleran/xapp-hello-world
   pullPolicy: IfNotPresent
   tag: ""
 
